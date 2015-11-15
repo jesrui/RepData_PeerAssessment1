@@ -1,10 +1,11 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
 output: 
-html_document:
-keep_md: true
+    html_document:
+        keep_md: true
 ---
 
+*Report generated `r format(Sys.time(), '%d %B, %Y %H:%M')`*
 
 ## Loading and preprocessing the data
 
@@ -44,14 +45,19 @@ g
 
 ##### Calculate and report the mean and median of the total number of steps taken per day
 
+As noted in the assignent, for this part of the report, I ignore the missing
+values in the dataset.
+
 ```{r}
-mean(stepsPerDay$steps, na.rm=TRUE)
-median(stepsPerDay$steps, na.rm=TRUE)
+mean.steps.na <- mean(stepsPerDay$steps, na.rm=TRUE)
+median.steps.na <- median(stepsPerDay$steps, na.rm=TRUE)
+mean.steps.na
+median.steps.na
 ```
 
 ## What is the average daily activity pattern?
 
-Pack the calculation in a function, since we will need it again later.
+Pack the calculation in a function, since I will need it again later.
 
 ```{r}
 time.series <- function(activity) {
@@ -76,12 +82,18 @@ with(stepsPer5MinInterval, plot(interval, steps, type='l'))
 title('Number of steps per 5-minute interal, averaged accross all days')
 ```
 
+We see that the subject wakes up around 6:00 and most of the steps are taken
+before 10:00. The activity slows down afterwards. Around 23:00 the subject goes
+to bed.
+
 ##### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 ```{r}
 interval.max <- with(stepsPer5MinInterval, interval[which.max(steps)])
 interval.max
 ```
+
+The maximum number of steps takes place around 08:35.
 
 ## Imputing missing values
 
@@ -107,7 +119,8 @@ is.na.steps <- is.na(activity$steps)
 # to which intervals do these NA's correspond?
 intervalsForNASteps <- activity$interval[which(is.na.steps)]
 # what indices have these intervals in the stepsPer5MinInterval data frame?
-steps5MinIdx <- sapply(intervalsForNASteps, function(i) which(stepsPer5MinInterval$interval == i))
+steps5MinIdx <- sapply(intervalsForNASteps,
+                       function(i) which(stepsPer5MinInterval$interval == i))
 # set unavailable steps to the daily step average in the corresponding interval
 activity$steps[is.na.steps] <- stepsPer5MinInterval$steps[steps5MinIdx]
 
@@ -133,13 +146,22 @@ g
 ##### Calculate and report the mean and median total number of steps taken per day.
 
 ```{r}
-mean(stepsPerDay$steps, na.rm=FALSE)
-median(stepsPerDay$steps, na.rm=FALSE)
+mean.steps <- mean(stepsPerDay$steps, na.rm=FALSE)
+median.steps <- median(stepsPerDay$steps, na.rm=FALSE)
+mean.steps
+median.steps
 ```
 
 ##### Do these values differ from the estimates from the first part of the assignment?
 
+The imputed statistics are a bit lower than the statistics calculated ignoring
+missing values. The difference in the mean is `r mean.steps-mean.steps.na`. The
+difference in the median is `r median.steps-median.steps.na`.
+
 ##### What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Comparing both histograms we can see that the one with imputed values is a bit
+more flat. The second bin is taller.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
@@ -158,17 +180,39 @@ levels(activity$daytype) <- c('weekday','weekend')
 
 ##### Calculate the average number of steps taken during each 5-minute interval, averaged across all weekend days and non-weekend days.
 
+For weekends:
+
 ```{r}
 wendStepsPer5MinInterval <- time.series(subset(activity, daytype == 'weekend'))
+summary(wendStepsPer5MinInterval, digits=12)
 wendStepsPer5MinInterval$daytype = 'weekend'
+```
+For weekdays:
+
+```{r}
 wdayStepsPer5MinInterval <- time.series(subset(activity, daytype == 'weekday'))
+summary(wdayStepsPer5MinInterval, digits=12)
 wdayStepsPer5MinInterval$daytype = 'weekday'
+```
+
+Combine both dataframes:
+
+```{r}
 stepsPer5MinInterval <- rbind(wendStepsPer5MinInterval, wdayStepsPer5MinInterval)
 ```
 
 ##### Make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis)
 
 ```{r}
-xyplot(steps ~ interval | daytype, data=stepsPer5MinInterval, type='l', layout=c(1,2))
+xyplot(steps ~ interval | daytype, data=stepsPer5MinInterval, type='l',
+       layout=c(1,2))
 ```
 
+Comparing both plots we can see that the number of steps taken by the subject
+
+- is larger at weekdays right after he wakes up (peak value of 
+  `r format(max(wdayStepsPer5MinInterval$steps))` steps/5-min interval around
+  8:35) than at weekend (peak of `r format(max(wendStepsPer5MinInterval$steps))`
+  steps/interval around 8:30) -- See max. steps value in the summaries above.
+- keeps an overall higher value after around 10:00 at weekend than at weekdays
+  -- See 3rd quantile in the summaries.
